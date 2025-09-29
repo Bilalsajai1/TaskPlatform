@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Welcome, {{ user.username }}</h1>
+<p>Role: {{ user.role }}</p>
+{% if user.role == 'admin' %}
+<a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">View Admin Dashboard</a>
+{% else %}
+<a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">View Your Tasks</a>
+{% endif %}
+{% endblock %}

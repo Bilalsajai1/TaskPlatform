@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-3">{{ user.username }}'s Tasks</h1>
+<table class="table">
+    <tr>
+        <th>Title</th><th>Status</th><th>Document</th><th>Confirmation Files</th><th>Actions</th>
+    </tr>
+    {% for task in tasks %}
+    <tr>
+        <td>{{ task.title }}</td>
+        <td>
+            {% set badge = 'secondary' %}
+            {% if task.status == 'Completed' %}{% set badge = 'success' %}
+            {% elif task.status == 'In Progress' %}{% set badge = 'info' %}
+            {% elif task.status == 'Started' %}{% set badge = 'warning' %}
+            {% endif %}
+            <span class="badge text-bg-{{ badge }}">{{ task.status }}</span>
+        </td>
+        <td>
+            {% if task.document_path %}
+            <a href="{{ url_for('main.download_file', filename=task.document_path) }}">Download</a>
+            {% else %}
+            None
+            {% endif %}
+        </td>
+        <td>
+            {% for file in task.confirmation_files %}
+            <a href="{{ url_for('main.download_file', filename=file) }}">{{ file }}</a><br>
+            {% endfor %}
+        </td>
+        <td><a href="{{ url_for('main.update_task', task_id=task.id) }}" class="btn btn-sm btn-primary">Update</a></td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

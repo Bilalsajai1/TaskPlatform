@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Update Task: {{ task.title }}</h1>
+<form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        {{ form.status.label }} {{ form.status(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.confirmation_file.label }} {{ form.confirmation_file(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.submit(class="btn btn-primary") }}
+    </div>
+</form>
+{% if task.document_path %}
+<a href="{{ url_for('main.download_file', filename=task.document_path) }}">Download Document</a>
+{% endif %}
+{% endblock %}

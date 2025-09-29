@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Valider la tâche : {{ task.title }}</h1>
+<p>Assigné à : {{ task.assignee.username }}</p>
+<p>Statut : {{ task.status }}</p>
+{% if task.document_path %}
+<p><a href="{{ url_for('main.download_file', filename=task.document_path) }}">Télécharger le document original</a></p>
+{% endif %}
+{% if task.confirmation_files %}
+<p>Fichiers de confirmation :</p>
+<ul>
+    {% for file in task.confirmation_files %}
+    <li><a href="{{ url_for('main.download_file', filename=file) }}">{{ file }}</a></li>
+    {% endfor %}
+</ul>
+{% endif %}
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        {{ form.submit(class="btn btn-success") }}
+    </div>
+</form>
+{% endblock %}

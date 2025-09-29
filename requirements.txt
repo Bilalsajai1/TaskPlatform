@@ -1,0 +1,10 @@
+flask
+flask-sqlalchemy
+flask-migrate
+flask-login
+flask-bcrypt
+flask-socketio
+flask-wtf
+wtforms
+python-magic-bin
+email_validator

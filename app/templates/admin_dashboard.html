@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-3">Tableau de bord de l'admin</h1>
+<a href="{{ url_for('main.create_task') }}" class="btn btn-primary mb-3">Créer une tâche</a>
+<table class="table">
+    <tr>
+        <th>Titre</th><th>Assigné à</th><th>Statut</th><th>Document</th><th>Fichiers de confirmation</th><th>Validé</th><th>Actions</th>
+    </tr>
+    {% for task in tasks %}
+    <tr>
+        <td>{{ task.title }}</td>
+        <td>{{ task.assignee.username }}</td>
+        <td>
+            {% set badge = 'secondary' %}
+            {% if task.status == 'Completed' %}{% set badge = 'success' %}
+            {% elif task.status == 'In Progress' %}{% set badge = 'info' %}
+            {% elif task.status == 'Started' %}{% set badge = 'warning' %}
+            {% endif %}
+            <span class="badge text-bg-{{ badge }}">{{ task.status }}</span>
+        </td>
+        <td>
+            {% if task.document_path %}
+            <a href="{{ url_for('main.download_file', filename=task.document_path) }}">Télécharger</a>
+            {% else %}
+            Aucun
+            {% endif %}
+        </td>
+        <td>
+            {% for file in task.confirmation_files %}
+            <a href="{{ url_for('main.download_file', filename=file) }}">{{ file }}</a><br>
+            {% endfor %}
+        </td>
+        <td>{{ 'Oui' if task.validated else 'Non' }}</td>
+        <td>
+            {% if task.status == 'Completed' and not task.validated %}
+            <a href="{{ url_for('main.validate_task', task_id=task.id) }}" class="btn btn-sm btn-success">Valider</a>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

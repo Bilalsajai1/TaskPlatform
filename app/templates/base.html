@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    .toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1060;
+    }
+    .slide-in {
+        animation: slideIn 300ms ease-out;
+    }
+    .fade-out {
+        animation: fadeOut 600ms ease-in forwards;
+    }
+    @keyframes slideIn {
+        from { transform: translateY(-10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">Task Platform</a>
+            <div class="navbar-nav">
+                {% if current_user.is_authenticated %}
+                    <a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                    {% if current_user.role == 'admin' %}
+                        <a class="nav-link" href="{{ url_for('main.register') }}">Register User</a>
+                    {% endif %}
+                    <a class="nav-link position-relative" href="#" id="notifBell">
+                        Notifications
+                        <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;">0</span>
+                    </a>
+                    <a class="nav-link" href="{{ url_for('main.logout') }}">Logout</a>
+                {% else %}
+                    <a class="nav-link" href="{{ url_for('main.login') }}">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <div id="realtime-alerts"></div>
+        {% if current_user.is_authenticated %}
+        <div class="mb-3 d-flex gap-2">
+            <button id="show-history" class="btn btn-sm btn-secondary">Voir l'historique des notifications</button>
+            <button id="mark-all-read" class="btn btn-sm btn-outline-secondary">Tout marquer comme lu</button>
+        </div>
+        <ul id="notifications" class="list-group mb-3"></ul>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% if current_user.is_authenticated %}
+    <script>
+    (function(){
+        var socket = io();
+        socket.on('connect', function(){
+            socket.emit('join', { user_id: '{{ current_user.id }}' });
+        });
+        function pushNotification(text){
+            var ul = document.getElementById('notifications');
+            if(!ul) return;
+            var li = document.createElement('li');
+            li.className = 'list-group-item';
+            li.textContent = text;
+            ul.prepend(li);
+        }
+        function updateBadge(count){
+            var badge = document.getElementById('notifBadge');
+            if(!badge) return;
+            if(count > 0){
+                badge.style.display = 'inline-block';
+                badge.textContent = count;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        function showToast(message){
+            var container = document.getElementById('toast-container');
+            if(!container) return;
+            var wrapper = document.createElement('div');
+            wrapper.className = 'toast align-items-center text-bg-primary border-0 slide-in';
+            wrapper.setAttribute('role', 'alert');
+            wrapper.setAttribute('aria-live', 'assertive');
+            wrapper.setAttribute('aria-atomic', 'true');
+            wrapper.style.minWidth = '320px';
+            wrapper.innerHTML = '<div class="d-flex">\
+                <div class="toast-body">'+ message +'</div>\
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>\
+            </div>';
+            container.appendChild(wrapper);
+            var bsToast = new bootstrap.Toast(wrapper, { delay: 20000, autohide: true });
+            bsToast.show();
+            wrapper.addEventListener('hidden.bs.toast', function(){
+                wrapper.classList.add('fade-out');
+                setTimeout(function(){ wrapper.remove(); }, 600);
+            });
+        }
+        socket.on('notification', function(data){
+            pushNotification(data.message);
+            showToast(data.message);
+            var current = parseInt(document.getElementById('notifBadge').textContent || '0');
+            updateBadge(current + 1);
+        });
+        var btn = document.getElementById('show-history');
+        if(btn){
+            btn.addEventListener('click', function(){
+                fetch('{{ url_for('main.notifications_history') }}')
+                    .then(function(r){ return r.json(); })
+                    .then(function(payload){
+                        var ul = document.getElementById('notifications');
+                        ul.innerHTML = '';
+                        payload.items.forEach(function(n){
+                            pushNotification(n.message + ' — ' + new Date(n.created_at).toLocaleString());
+                        });
+                        updateBadge(payload.unread_count);
+                    });
+            });
+        }
+        var markBtn = document.getElementById('mark-all-read');
+        if(markBtn){
+            markBtn.addEventListener('click', function(){
+                fetch('{{ url_for('main.notifications_mark_all_read') }}', { method: 'POST', headers: { 'X-Requested-With': 'fetch' }})
+                    .then(function(){ updateBadge(0); });
+            });
+        }
+    })();
+    </script>
+    {% endif %}
+</body>
+</html>
