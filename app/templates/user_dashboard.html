@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="mb-3">{{ user.username }}'s Tasks</h1>
-<table class="table">
-    <tr>
-        <th>Title</th><th>Status</th><th>Document</th><th>Confirmation Files</th><th>Actions</th>
-    </tr>
+<h1 class="mb-3">Bienvenue, {{ user.username }}</h1>
+<div class="row g-3">
     {% for task in tasks %}
-    <tr>
-        <td>{{ task.title }}</td>
-        <td>
-            {% set badge = 'secondary' %}
-            {% if task.status == 'Completed' %}{% set badge = 'success' %}
-            {% elif task.status == 'In Progress' %}{% set badge = 'info' %}
-            {% elif task.status == 'Started' %}{% set badge = 'warning' %}
-            {% endif %}
-            <span class="badge text-bg-{{ badge }}">{{ task.status }}</span>
-        </td>
-        <td>
-            {% if task.document_path %}
-            <a href="{{ url_for('main.download_file', filename=task.document_path) }}">Download</a>
-            {% else %}
-            None
-            {% endif %}
-        </td>
-        <td>
-            {% for file in task.confirmation_files %}
-            <a href="{{ url_for('main.download_file', filename=file) }}">{{ file }}</a><br>
-            {% endfor %}
-        </td>
-        <td><a href="{{ url_for('main.update_task', task_id=task.id) }}" class="btn btn-sm btn-primary">Update</a></td>
-    </tr>
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-hover glass animate__animated animate__fadeInUp">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title mb-0">{{ task.title }}</h5>
+                    {% set badge = 'secondary' %}
+                    {% if task.status == 'Completed' %}{% set badge = 'success' %}
+                    {% elif task.status == 'In Progress' %}{% set badge = 'info' %}
+                    {% elif task.status == 'Started' %}{% set badge = 'warning' %}
+                    {% endif %}
+                    <span class="badge text-bg-{{ badge }}">{{ task.status }}</span>
+                </div>
+                <p class="text-muted">{{ task.description }}</p>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    {% if task.document_path %}
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.download_file', filename=task.document_path) }}">Document</a>
+                    <a class="btn btn-sm btn-outline-secondary" data-preview href="{{ url_for('main.preview', filename=task.document_path) }}">Prévisualiser</a>
+                    {% endif %}
+                    {% for file in task.confirmation_files %}
+                    <a class="btn btn-sm btn-outline-success" href="{{ url_for('main.download_file', filename=file) }}">Confirmation</a>
+                    <a class="btn btn-sm btn-outline-secondary" data-preview href="{{ url_for('main.preview', filename=file) }}">Prévisualiser</a>
+                    {% endfor %}
+                </div>
+                <a href="{{ url_for('main.update_task', task_id=task.id) }}" class="btn btn-primary">Mettre à jour</a>
+            </div>
+        </div>
+    </div>
     {% endfor %}
-</table>
+</div>
 {% endblock %}

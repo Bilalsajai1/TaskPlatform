@@ -1,8 +1,96 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="mb-3">Tableau de bord de l'admin</h1>
-<a href="{{ url_for('main.create_task') }}" class="btn btn-primary mb-3">Créer une tâche</a>
-<table class="table">
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h1 class="mb-0">Tableau de bord</h1>
+  <a href="{{ url_for('main.create_task') }}" class="btn btn-lg btn-primary accent">Créer une tâche</a>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card card-hover text-bg-primary animate__animated animate__fadeInUp">
+      <div class="card-body">
+        <div class="fw-bold">Total Tâches</div>
+        <div class="display-6">{{ total_tasks }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-hover text-bg-success animate__animated animate__fadeInUp animate__delay-1s">
+      <div class="card-body">
+        <div class="fw-bold">Validées</div>
+        <div class="display-6">{{ validated_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-hover text-bg-warning animate__animated animate__fadeInUp animate__delay-2s">
+      <div class="card-body">
+        <div class="fw-bold">Non Validées</div>
+        <div class="display-6">{{ not_validated_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-hover text-bg-info animate__animated animate__fadeInUp animate__delay-3s">
+      <div class="card-body">
+        <div class="fw-bold">Utilisateurs</div>
+        <div class="display-6">{{ users|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+<form class="row g-2 mb-3" method="get">
+    <div class="col-md-3">
+        <input type="text" name="q" value="{{ current_filters.q or '' }}" class="form-control" placeholder="Rechercher (titre, description)">
+    </div>
+    <div class="col-md-3">
+        <select name="status" class="form-select">
+            <option value="">Tous les statuts</option>
+            {% for s in ['Not Started','Started','In Progress','Completed'] %}
+            <option value="{{ s }}" {% if current_filters.status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select name="assigned_to" class="form-select">
+            <option value="">Tous les utilisateurs</option>
+            {% for u in users %}
+            <option value="{{ u.id }}" {% if current_filters.assigned_to==u.id %}selected{% endif %}>{{ u.username }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3 d-grid d-md-block">
+        <button type="submit" class="btn btn-outline-primary">Filtrer</button>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Réinitialiser</a>
+    </div>
+</form>
+<div class="mb-3 d-flex gap-2">
+  <a class="btn btn-sm btn-outline-dark {% if current_filters.quick=='overdue' %}active{% endif %}" href="{{ url_for('main.dashboard', quick='overdue', **base_filters) }}">En retard</a>
+  <a class="btn btn-sm btn-outline-dark {% if current_filters.quick=='needs_validation' %}active{% endif %}" href="{{ url_for('main.dashboard', quick='needs_validation', **base_filters) }}">À valider</a>
+  <a class="btn btn-sm btn-outline-success ms-auto" href="{{ url_for('main.export_tasks_csv') }}">Exporter CSV</a>
+</div>
+<div class="mb-3 d-flex gap-2" id="saved-filters"></div>
+<script>
+(function(){
+  function renderSaved(list){
+    var box = document.getElementById('saved-filters');
+    if(!box) return;
+    box.innerHTML = '';
+    list.forEach(function(s){
+      var a = document.createElement('a');
+      a.href = "{{ url_for('main.dashboard') }}" + '?' + new URLSearchParams(s.params).toString();
+      a.className = 'badge text-bg-light text-decoration-none';
+      a.textContent = s.name;
+      box.appendChild(a);
+    });
+  }
+  fetch("{{ url_for('main.filters') }}")
+    .then(function(r){ return r.json(); })
+    .then(renderSaved);
+})();
+</script>
+<div class="card glass card-hover mb-4">
+<div class="card-body">
+<table class="table table-hover align-middle mb-0">
     <tr>
         <th>Titre</th><th>Assigné à</th><th>Statut</th><th>Document</th><th>Fichiers de confirmation</th><th>Validé</th><th>Actions</th>
     </tr>
@@ -20,14 +108,16 @@
         </td>
         <td>
             {% if task.document_path %}
-            <a href="{{ url_for('main.download_file', filename=task.document_path) }}">Télécharger</a>
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.download_file', filename=task.document_path) }}">Télécharger</a>
+            <a class="btn btn-sm btn-outline-secondary" data-preview href="{{ url_for('main.preview', filename=task.document_path) }}">Prévisualiser</a>
             {% else %}
             Aucun
             {% endif %}
         </td>
         <td>
             {% for file in task.confirmation_files %}
-            <a href="{{ url_for('main.download_file', filename=file) }}">{{ file }}</a><br>
+            <a class="btn btn-sm btn-outline-success" href="{{ url_for('main.download_file', filename=file) }}">{{ file }}</a>
+            <a class="btn btn-sm btn-outline-secondary" data-preview href="{{ url_for('main.preview', filename=file) }}">Prévisualiser</a><br>
             {% endfor %}
         </td>
         <td>{{ 'Oui' if task.validated else 'Non' }}</td>
@@ -39,4 +129,70 @@
     </tr>
     {% endfor %}
 </table>
+</div>
+</div>
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card card-hover glass">
+      <div class="card-body">
+        <h5 class="card-title">Répartition par statut</h5>
+        <canvas id="chartStatus"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card card-hover glass">
+      <div class="card-body">
+        <h5 class="card-title">Tâches par utilisateur</h5>
+        <canvas id="chartUsers"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="chartData" data-status='{{ status_counts|tojson }}' data-users='{{ per_user_counts|tojson }}' class="d-none"></div>
+{% if pagination and pagination.pages > 1 %}
+<nav>
+  <ul class="pagination">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      {% if current_filters.quick %}
+      <a class="page-link" href="{{ url_for('main.dashboard', page=pagination.prev_num, quick=current_filters.quick, **base_filters) }}">Précédent</a>
+      {% else %}
+      <a class="page-link" href="{{ url_for('main.dashboard', page=pagination.prev_num, **base_filters) }}">Précédent</a>
+      {% endif %}
+    </li>
+    <li class="page-item disabled"><span class="page-link">Page {{ pagination.page }} / {{ pagination.pages }}</span></li>
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      {% if current_filters.quick %}
+      <a class="page-link" href="{{ url_for('main.dashboard', page=pagination.next_num, quick=current_filters.quick, **base_filters) }}">Suivant</a>
+      {% else %}
+      <a class="page-link" href="{{ url_for('main.dashboard', page=pagination.next_num, **base_filters) }}">Suivant</a>
+      {% endif %}
+    </li>
+  </ul>
+</nav>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function(){
+  var dataEl = document.getElementById('chartData');
+  var statusObj = JSON.parse(dataEl.dataset.status || '{}');
+  var statusLabels = Object.keys(statusObj);
+  var statusData = Object.values(statusObj);
+  var ctx1 = document.getElementById('chartStatus').getContext('2d');
+  new Chart(ctx1, {
+    type: 'doughnut',
+    data: { labels: statusLabels, datasets: [{ data: statusData, backgroundColor: ['#6c757d','#ffc107','#0dcaf0','#198754'] }] },
+    options: { animation: { animateScale: true } }
+  });
+  var userObj = JSON.parse(dataEl.dataset.users || '{}');
+  var userLabels = Object.keys(userObj);
+  var userData = Object.values(userObj);
+  var ctx2 = document.getElementById('chartUsers').getContext('2d');
+  new Chart(ctx2, {
+    type: 'bar',
+    data: { labels: userLabels, datasets: [{ label: 'Tâches', data: userData, backgroundColor: '#0d6efd' }] },
+    options: { scales: { y: { beginAtZero: true } }, animation: { duration: 800 } }
+  });
+})();
+</script>
 {% endblock %}

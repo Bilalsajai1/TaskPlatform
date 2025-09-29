@@ -16,4 +16,24 @@
 {% if task.document_path %}
 <a href="{{ url_for('main.download_file', filename=task.document_path) }}">Download Document</a>
 {% endif %}
+
+<hr>
+<h3>Commentaires</h3>
+<form method="POST">
+    {{ comment_form.hidden_tag() }}
+    <div class="mb-2">{{ comment_form.content(class="form-control", placeholder="Ajouter un commentaire...") }}</div>
+    {{ comment_form.submit(class="btn btn-outline-primary btn-sm") }}
+    <input type="hidden" name="content" value="1">
+</form>
+<ul class="list-group mt-3">
+    {% for c in comments %}
+    <li class="list-group-item">
+        <div class="small text-muted">par {{ c.user_id }} — {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        <div>{{ c.content }}</div>
+    </li>
+    {% endfor %}
+    {% if not comments %}
+    <li class="list-group-item text-muted">Aucun commentaire pour l'instant.</li>
+    {% endif %}
+</ul>
 {% endblock %}

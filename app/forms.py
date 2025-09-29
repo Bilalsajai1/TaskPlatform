@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField
-from wtforms.validators import DataRequired, Email, EqualTo
+from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField, DateTimeLocalField, FieldList
+from wtforms.validators import DataRequired, Email, EqualTo, Optional
 
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -21,7 +21,14 @@ class TaskForm(FlaskForm):
     description = TextAreaField('Description')
     document = FileField('Upload Document', validators=[FileAllowed(['pdf', 'doc', 'docx'], 'Documents only!')])
     assigned_to = SelectField('Assign To', coerce=int)
+    due_date = DateTimeLocalField('Due Date', format='%Y-%m-%dT%H:%M', validators=[Optional()])
+    priority = SelectField('Priority', choices=[('Low','Low'), ('Normal','Normal'), ('High','High')])
+    tags = StringField('Tags (comma-separated)')
     submit = SubmitField('Create Task')
+
+class CommentForm(FlaskForm):
+    content = TextAreaField('Comment', validators=[DataRequired()])
+    submit = SubmitField('Add Comment')
 
 class StatusForm(FlaskForm):
     status = SelectField('Status', choices=[('Not Started', 'Not Started'), ('Started', 'Started'), ('In Progress', 'In Progress'), ('Completed', 'Completed')])
